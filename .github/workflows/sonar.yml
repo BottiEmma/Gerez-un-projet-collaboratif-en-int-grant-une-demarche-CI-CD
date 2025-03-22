@@ -29,7 +29,13 @@ jobs:
       - name: Build project (compile classes)
         run: mvn clean compile
         working-directory: back
+      - name: Run tests with JaCoCo
+        run: mvn clean verify
+        working-directory: back
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.coverage.jacoco.xmlReportPaths=back/target/site/jacoco/jacoco.xml
