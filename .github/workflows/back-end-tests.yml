@@ -9,6 +9,7 @@ on:
           - main
 jobs:
     build:
+        name:  Backend - Tests & Coverage
         runs-on: windows-latest
         steps:
             - uses: actions/checkout@v4
@@ -19,6 +20,9 @@ jobs:
                   distribution: 'temurin'
             - name: Install dependencies
               run: mvn clean install
+              working-directory: back
+            - name: Run backend tests
+              run: mvn test jacoco:report
               working-directory: back
             - name: Jacoco coverage report
               uses: actions/upload-artifact@v4
