@@ -19,12 +19,6 @@ jobs:
         with:
           java-version: '11'
           distribution: 'temurin'
-      - name:  Cache SonarQube packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
       - name: Cache Maven dependencies
         uses: actions/cache@v3
         with:
@@ -32,10 +26,31 @@ jobs:
           key: maven-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             maven-${{ runner.os }}-
+      - name: Build project (compile classes)
+        run: mvn clean compile
+        working-directory: back
+      - name: Run tests with JaCoCo
+        run: mvn clean verify
+        working-directory: back
+      - name: Install Node.js dependencies
+        run: npm ci
+        working-directory: front
+
+      - name: Run Karma unit tests (with coverage)
+        run: npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
+        working-directory: front
+
+      - name: Upload Karma coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: karma-coverage-report
+          path: front/coverage
 
       - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          cd back
-          mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+        with:
+          args: >
+            -Dsonar.coverage.jacoco.xmlReportPaths=back/target/site/jacoco/jacoco.xml
+            -Dsonar.javascript.lcov.reportPaths=front/coverage/lcov.info
