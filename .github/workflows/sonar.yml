@@ -4,11 +4,10 @@ on:
     branches:
       - main
   pull_request:
-    branches:
-      - main
+    types: [opened, synchronize, reopened]
 jobs:
-  backend:
-    name: SonarQube back
+  sonarqube:
+    name: SonarQube
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,47 +19,38 @@ jobs:
         with:
           java-version: '11'
           distribution: 'temurin'
-      - name:  Cache SonarQube packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
       - name: Cache Maven dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v3
         with:
           path: ~/.m2
           key: maven-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             maven-${{ runner.os }}-
-      - name: SonarQube Scan backend
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          cd back
-          mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
-  frontend:
-    name: SonarQube front
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - name: Build project (compile classes)
+        run: mvn clean compile
+        working-directory: back
+      - name: Run tests with JaCoCo
+        run: mvn clean verify
+        working-directory: back
+      - name: Install Node.js dependencies
+        run: npm ci
+        working-directory: front
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-      - name: Dependencies
-        run: |
-          cd front
-          npm install
+      - name: Run Karma unit tests (with coverage)
+        run: npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
+        working-directory: front
 
-      - name: SonarQube Scan frontend
+      - name: Upload Karma coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: karma-coverage-report
+          path: front/coverage
+
+      - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
-          projectBaseDir: front
           args: >
-            -Dproject.settings=front/sonar-project.properties
+            -Dsonar.coverage.jacoco.xmlReportPaths=back/target/site/jacoco/jacoco.xml
+            -Dsonar.javascript.lcov.reportPaths=front/coverage/lcov.info
