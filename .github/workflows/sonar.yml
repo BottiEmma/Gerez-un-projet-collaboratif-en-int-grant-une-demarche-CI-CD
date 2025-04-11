@@ -32,11 +32,8 @@ jobs:
           key: maven-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             maven-${{ runner.os }}-
-      - name: Build project (compile classes)
-        run: mvn clean compile
-        working-directory: back
-      - name: Run tests with JaCoCo
-        run: mvn clean verify
+      - name: Run backend tests with coverage
+        run: mvn clean test jacoco:report
         working-directory: back
       - name: Install Node.js dependencies
         run: npm ci
@@ -56,7 +53,3 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.coverage.jacoco.xmlReportPaths=back/target/site/jacoco/jacoco.xml
-            -Dsonar.javascript.lcov.reportPaths=front/coverage/lcov.info
