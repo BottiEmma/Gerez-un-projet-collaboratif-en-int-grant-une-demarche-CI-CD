@@ -48,7 +48,9 @@ jobs:
         with:
           name: karma-coverage-report
           path: front/coverage
-
+      - name: Copy dependencies for SonarCloud
+        run: mvn dependency:copy-dependencies -DoutputDirectory=target/lib
+        working-directory: back
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v5
         env:
