@@ -35,6 +35,11 @@ jobs:
       - name: Run backend tests with coverage
         run: mvn clean test jacoco:report
         working-directory: back
+      - name: Upload JaCoCo backend coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-coverage-report
+          path: back/target/site/jacoco
       - name: Install Node.js dependencies
         run: npm ci
         working-directory: front
