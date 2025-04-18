@@ -27,10 +27,14 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Extract tag version (e.g. v1)
+      - name: Extract tag version
         id: extract_tag
         run: |
-          echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          else
+            echo "TAG_NAME=dev" >> $GITHUB_ENV
+          fi
 #Je garde latest quand même pour pouvoir pull les images sans spécifier la version
       - name: Build and push Frontend Docker image
         run: |
