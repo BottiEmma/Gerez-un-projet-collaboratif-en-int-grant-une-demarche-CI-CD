@@ -1,0 +1,45 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-push:
+    name: Build & Push Docker Images
+    runs-on: ubuntu-latest
+
+    env:
+      REGISTRY: docker.io
+      IMAGE_NAME_FRONT: emmab3/bobapp-front
+      IMAGE_NAME_BACK: emmab3/bobapp-back
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Extract tag version (e.g. v1)
+        id: extract_tag
+        run: |
+          echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+#Je garde latest quand même pour pouvoir pull les images sans spécifier la version
+      - name: Build and push Frontend Docker image
+        run: |
+          docker build -t $IMAGE_NAME_FRONT:latest -t $IMAGE_NAME_FRONT:${TAG_NAME} ./front
+          docker push $IMAGE_NAME_FRONT:latest
+          docker push $IMAGE_NAME_FRONT:${TAG_NAME}
+
+      - name: Build and push Backend Docker image
+        run: |
+          docker build -t $IMAGE_NAME_BACK:latest -t $IMAGE_NAME_BACK:${TAG_NAME} ./back
+          docker push $IMAGE_NAME_BACK:latest
+          docker push $IMAGE_NAME_BACK:${TAG_NAME}
